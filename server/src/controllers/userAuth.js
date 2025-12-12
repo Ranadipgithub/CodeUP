@@ -5,6 +5,14 @@ const validate = require("../utils/validator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 3600000, // 1 hour
+};
+
+
 const register = async (req, res) => {
     try{
         validate(req.body);
@@ -18,7 +26,7 @@ const register = async (req, res) => {
 
         const token = jwt.sign({_id: user._id, role: user.role, emailId:emailId}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
-        res.cookie('token', token, {maxAge: 3600000});
+        res.cookie('token', token, cookieOptions);
 
         const reply = {
             firstName: user.firstName,
@@ -55,7 +63,7 @@ const login = async (req, res) => {
 
         const token = jwt.sign({_id: user._id, emailId:emailId, role: user.role}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
-        res.cookie('token', token, {maxAge: 3600000});
+        res.cookie('token', token, cookieOptions);
 
         const reply = {
             firstName: user.firstName,
@@ -74,25 +82,27 @@ const login = async (req, res) => {
 }
 
 const logout = async (req, res) => {
-    try{
-        // validate the token
-        const token = req.cookies.token;
-        if(!token) {
-            throw new Error("User not logged in");
-        }
-        const payload = jwt.decode(token);
+  try {
+    const token = req.cookies.token;
+    if (!token) throw new Error("User not logged in");
 
-        await redisClient.set(`token:${token}`, 'blocked');
+    const payload = jwt.decode(token);
 
-        await redisClient.expireAt(`token:${token}`, payload.exp);
+    await redisClient.set(`token:${token}`, "blocked");
+    await redisClient.expireAt(`token:${token}`, payload.exp);
 
-        res.cookie('token', null, {expires: new Date(Date.now())});
+    res.cookie("token", "", {
+      ...cookieOptions,
+      expires: new Date(0)
+    });
 
-        res.status(200).send({message: "User logged out successfully"});
-    } catch(err) {
-        res.status(400).json({error: err.message});
-    }
-}
+    res.status(200).json({ message: "User logged out successfully" });
+
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 
 const adminRegister = async (req, res) => {
     try{
@@ -107,7 +117,7 @@ const adminRegister = async (req, res) => {
 
         const token = jwt.sign({_id: user._id, role: user.role, emailId:emailId}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
-        res.cookie('token', token, {maxAge: 3600000});
+        res.cookie('token', token, cookieOptions);
 
         res.status(201).send({message: "User registered successfully"});
     } catch(err) {
@@ -121,7 +131,7 @@ const deleteProfile = async (req, res) => {
         await User.findByIdAndDelete(userId);
         // delete all submissions
         await Submission.deleteMany({userId});
-        res.cookie('token', null, {expires: new Date(Date.now())});
+        res.cookie('token', null, {...cookieOptions, expires: new Date(0)});
         res.status(200).json({message: "User profile deleted successfully"});
     } catch(err) {
         res.status(400).json({error: err.message});
