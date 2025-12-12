@@ -7,7 +7,7 @@ const cors = require("cors");
 const redisClient = require("./config/redis");
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://codeupp.vercel.app"],
   credentials: true,
 }));
 
