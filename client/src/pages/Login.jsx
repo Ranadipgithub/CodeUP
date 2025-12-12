@@ -172,17 +172,15 @@
 
 // export default Login;
 
-
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { loginUser } from "@/authSlice";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import glogo from "../assets/google_logo.png"
+import glogo from "../assets/google_logo.png";
 
 // validation schema
 const signupSchema = z.object({
@@ -193,7 +191,10 @@ const signupSchema = z.object({
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
+
+  const from = location.state?.from || "/";
 
   const {
     register,
@@ -211,10 +212,13 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  function onSubmit(data) {
-    dispatch(loginUser(data));
-  }
+  async function onSubmit(data) {
+    const result = await dispatch(loginUser(data));
 
+    if (loginUser.fulfilled.match(result)) {
+      navigate(from, { replace: true });
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-black relative overflow-hidden">
@@ -268,8 +272,8 @@ const Login = () => {
           </div>
 
           {/* Google Button */}
-          <button 
-            type="button" 
+          <button
+            type="button"
             // onClick={handleGoogleSignup}
             className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white py-3 rounded-lg border border-white/10 flex items-center justify-center gap-3 transition-colors font-medium"
           >
@@ -279,9 +283,11 @@ const Login = () => {
 
           {/* Divider */}
           <div className="relative flex py-4 items-center">
-             <div className="grow border-t border-white/10"></div>
-             <span className="shrink mx-4 text-gray-500 text-xs uppercase">Or</span>
-             <div className="grow border-t border-white/10"></div>
+            <div className="grow border-t border-white/10"></div>
+            <span className="shrink mx-4 text-gray-500 text-xs uppercase">
+              Or
+            </span>
+            <div className="grow border-t border-white/10"></div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

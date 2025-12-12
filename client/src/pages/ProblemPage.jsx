@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axiosClient from "@/utils/axiosClient";
 import { useSelector } from "react-redux";
 import {
@@ -170,6 +170,7 @@ const formatDate = (dateString) => {
 const ProblemPage = () => {
   const { problemId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const editorRef = useRef(null);
   const { isAuthenticated } = useSelector((state) => state.auth);
 
@@ -498,7 +499,7 @@ const ProblemPage = () => {
             </div>
           ) : (
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login", {state: {from: location.pathname}})}
               className="text-white font-semibold hover:text-gray-300 text-[16px] cursor-pointer ml-4"
             >
               Log In
