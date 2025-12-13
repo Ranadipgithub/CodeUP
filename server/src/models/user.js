@@ -42,6 +42,58 @@ const userSchema = new mongoose.Schema({
   problemSolved: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Problem"
+  }],
+  avatar: String,
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+  },
+  problemSolved: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Problem"
+  }],
+  authProvider: {
+    type: String,
+    enum: ["local", "google"],
+    required: true,
+    default: "local"
+  },
+  firstName: {
+    type: String,
+    required: function () {
+      return this.authProvider === "local";
+    },
+    minLength: 2,
+    maxLength: 30
+  },
+  lastName: {
+    type: String
+  },
+  emailId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    immutable: true
+  },
+  password: {
+    type: String,
+    required: function () {
+      return this.authProvider === "local";
+    }
+  },
+  googleId: String,
+  avatar: String,
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+  },
+  problemSolved: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Problem"
   }]
 }, { timestamps: true });
 
