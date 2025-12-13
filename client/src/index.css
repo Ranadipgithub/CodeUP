@@ -4,6 +4,7 @@
 body {
   background-color: #0a0a0a; /* Your dark background */
   font-family: 'Space Grotesk', sans-serif;
+  max-width: 100%;
 }
 
 .font-mono { font-family: 'JetBrains Mono', monospace; }

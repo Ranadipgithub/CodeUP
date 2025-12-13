@@ -7,8 +7,8 @@ const router = express.Router();
 
 const cookieOptions = {
   httpOnly: true,
-  secure: true,        // REQUIRED for SameSite=None
-  sameSite: "none",    // REQUIRED for cross-site
+  secure: true, // REQUIRED for SameSite=None
+  sameSite: "none", // REQUIRED for cross-site
   maxAge: 3600000,
 };
 
@@ -20,12 +20,22 @@ router.get(
 
 router.get(
   "/google/callback",
-  passpost.authenticate("google", { session: false, failureRedirect: "/login" }),
+  passpost.authenticate("google", {
+    session: false,
+    failureRedirect: "/login",
+  }),
   (req, res) => {
     try {
-      const token = jwt.sign({ _id: req.user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
+      const token = jwt.sign(
+        {
+          _id: req.user._id,
+          emailId: req.user.emailId,
+          role: req.user.role,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
       res.cookie("token", token, cookieOptions);
       res.redirect(`${process.env.CLIENT_URL}/auth-success`);
     } catch (error) {
@@ -35,8 +45,8 @@ router.get(
   }
 );
 
-router.get('/me', userMiddleware, (req, res) => {
-    res.json({success: true, user: req.user});
+router.get("/me", userMiddleware, (req, res) => {
+  res.json({ success: true, user: req.user });
 });
 
 module.exports = router;
