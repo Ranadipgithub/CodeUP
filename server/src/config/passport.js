@@ -7,13 +7,16 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/auth/google/callback",
+      callbackURL:
+        process.env.NODE_ENV === "production"
+          ? "https://codeup-g1u4.onrender.com/auth/google/callback"
+          : "http://localhost:3000/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, cb) => {
       try {
         let user = await User.findOne({ googleId: profile.id });
 
-        if(!user){
+        if (!user) {
           user = await User.create({
             googleId: profile.id,
             firstName: profile.name.givenName,
@@ -21,7 +24,7 @@ passport.use(
             emailId: profile.emails[0].value,
             avatar: profile.photos[0].value,
             role: "user",
-            authProvider: "google"
+            authProvider: "google",
           });
         }
 
