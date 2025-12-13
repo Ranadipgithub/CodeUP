@@ -14,6 +14,7 @@ import Signup from "./pages/Signup";
 import AdminCreate from "./pages/AdminCreate";
 import UpdateProblem from "./components/updateProblem";
 import AdminUpload from "./pages/AdminUpload";
+import AuthSuccess from "./pages/AuthSuccess";
 
 function App() {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
@@ -53,6 +54,7 @@ function App() {
           path="/signup"
           element={isAuthenticated ? <Navigate to="/" /> : <Signup />}
         />
+        <Route path="/auth-success" element={<AuthSuccess />} />
         <Route path="/problem/:problemId" element={<ProblemPage />} />
 
         {/* Admin Route

@@ -54,7 +54,7 @@ const ChatAI = ({ problem }) => {
   const [messages, setMessages] = useState([
     { 
       role: 'model', 
-      parts: [{ text: "Hello! I'm your CodeCraft AI assistant. I can help you with hints, debugging, or explaining the approach for **" + (problem?.title || "this problem") + "**. How can I help?" }] 
+      parts: [{ text: "Hello! I'm your CodeUP  AI assistant. I can help you with hints, debugging, or explaining the approach for **" + (problem?.title || "this problem") + "**. How can I help?" }] 
     }
   ]);
 

@@ -157,21 +157,15 @@
 
 // export default Signup;
 
-
-
-
-
-
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { registerUser } from "@/authSlice";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import glogo from "../assets/google_logo.png"
+import glogo from "../assets/google_logo.png";
 
 // validation schema
 const signupSchema = z.object({
@@ -182,6 +176,7 @@ const signupSchema = z.object({
 
 const Signup = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
 
@@ -205,9 +200,13 @@ const Signup = () => {
     dispatch(registerUser(data));
   }
 
-  const handleGoogleSignup = () => {
-    // Add Google Signup logic here
-    console.log("Google signup clicked");
+  const backend_url = import.meta.env.VITE_BACKEND_URL;
+  const from = location.state?.from?.pathname || location.state?.from || "/";
+
+  const handleGoogleSignUp = () => {
+    console.log("Saving return path:", from); // Debugging
+    localStorage.setItem("auth_return_path", from);
+    window.open(`${backend_url}/auth/google`, "_self");
   };
 
   return (
@@ -255,17 +254,19 @@ const Signup = () => {
       <main className="grow flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-[420px] bg-[#121212] border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-xl animate-fade-in">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              Create Account
+            </h2>
             <p className="text-gray-400 text-sm">
               Start your coding journey with CodeUp today
             </p>
           </div>
 
           {/* Google Button */}
-          <button 
-            type="button" 
-            onClick={handleGoogleSignup}
-            className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white py-3 rounded-lg border border-white/10 flex items-center justify-center gap-3 transition-colors font-medium"
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white py-3 rounded-lg border border-white/10 flex items-center justify-center gap-3 transition-colors font-medium cursor-pointer"
           >
             <img src={glogo} alt="Google" width="20" height="20" />
             Continue with Google
@@ -273,13 +274,14 @@ const Signup = () => {
 
           {/* Divider */}
           <div className="relative flex py-4 items-center">
-             <div className="grow border-t border-white/10"></div>
-             <span className="shrink mx-4 text-gray-500 text-xs uppercase">Or</span>
-             <div className="grow border-t border-white/10"></div>
+            <div className="grow border-t border-white/10"></div>
+            <span className="shrink mx-4 text-gray-500 text-xs uppercase">
+              Or
+            </span>
+            <div className="grow border-t border-white/10"></div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            
             {/* First Name Field */}
             <div className="space-y-1.5">
               <label

@@ -23,6 +23,8 @@ const Navbar = () => {
     { name: "Discuss", path: "/discuss" },
   ];
 
+  const avatar = user?.avatar;
+
   return (
     <div className="bg-[#050505] text-white font-sans selection:bg-[#4ADE80] selection:text-black overflow-x-hidden relative flex flex-col">
       <div className="relative z-50 w-full border-b border-white/10 bg-[#050505]/50 backdrop-blur-sm">
@@ -70,18 +72,26 @@ const Navbar = () => {
                   {/* 5. Conditional Styling for the underline */}
                   <span
                     className={`absolute -bottom-6 left-0 w-full h-0.5 bg-[#4ADE80] transition-transform origin-left ${
-                      isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                      isActive
+                        ? "scale-x-100"
+                        : "scale-x-0 group-hover:scale-x-100"
                     }`}
                   ></span>
                 </div>
               );
             })}
-            
+
             {/* Static Links */}
-            <a href="#" className="text-[#ffa116] hover:text-white transition-colors">
+            <a
+              href="#"
+              className="text-[#ffa116] hover:text-white transition-colors"
+            >
               Premium
             </a>
-            <a href="/admin" className="text-[#4ADE80] hover:text-white transition-colors">
+            <a
+              href="/admin"
+              className="text-[#4ADE80] hover:text-white transition-colors"
+            >
               {user && user.role === "admin" && "Admin"}
             </a>
           </div>
@@ -109,8 +119,17 @@ const Navbar = () => {
                     {user?.firstName || "User"}
                   </span>
 
-                  <div className="w-10 h-10 rounded-full bg-[#1A1A1A] border border-white/10 flex items-center justify-center text-[#4ADE80] group-hover:border-[#4ADE80] group-hover:shadow-[0_0_10px_rgba(74,222,128,0.2)] transition-all">
-                    <User size={20} />
+                  <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-[#1A1A1A] group-hover:border-[#4ADE80] group-hover:shadow-[0_0_10px_rgba(74,222,128,0.2)] transition-all">
+                    {avatar ? (
+                      <img
+                        src={avatar}
+                        alt="User Avatar"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer" // important for Google avatars
+                      />
+                    ) : (
+                      <User size={20} className="text-[#4ADE80]" />
+                    )}
                   </div>
                 </div>
               </>

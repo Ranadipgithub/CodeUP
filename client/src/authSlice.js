@@ -61,7 +61,15 @@ const authSlice = createSlice({
     isAuthenticated: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    // --- NEW REDUCER FOR GOOGLE AUTH ---
+    setUser: (state, action) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.loading = false;
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(registerUser.pending, (state) => {
@@ -136,5 +144,8 @@ const authSlice = createSlice({
       });
   },
 });
+
+// Export the synchronous action so AuthSuccess can import it
+export const { setUser } = authSlice.actions;
 
 export default authSlice.reducer;

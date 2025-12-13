@@ -5,6 +5,7 @@ const main = require("./config/db");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const redisClient = require("./config/redis");
+require("./config/passport");
 
 app.use(cors({
   origin: ["http://localhost:5173", "https://codeupp.vercel.app"],
@@ -26,6 +27,7 @@ app.use("/submission", require("./routes/submit"));
 app.use('/ai', require('./routes/chatAI'));
 app.use('/video', require('./routes/videoCreator'));
 app.use('/admin', require('./routes/admin'));
+app.use('/auth', require('./routes/authRoute'));
 
 const initializeConnection = async () => {
   try {

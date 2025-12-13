@@ -452,7 +452,7 @@ const ProblemPage = () => {
                   <path d="M17 17l4-4-4-4" />
                 </svg>
               </div>
-              <span className="font-bold text-xl text-white tracking-tight group-hover:text-[#4ADE80] transition-colors duration-300">
+              <span onClick={() => navigate('/')} className="font-bold text-xl text-white tracking-tight group-hover:text-[#4ADE80] transition-colors duration-300">
                 codeup
               </span>
             </div>
@@ -468,7 +468,7 @@ const ProblemPage = () => {
           <button
             onClick={handleRun}
             disabled={isRunning}
-            className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/10"
+            className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/10 cursor-pointer"
           >
             {isRunning ? (
               <Loader2 size={16} className="animate-spin" />
@@ -480,7 +480,7 @@ const ProblemPage = () => {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 bg-[#4ADE80] hover:bg-[#3ec46d] text-black px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 shadow-[0_0_15px_rgba(74,222,128,0.25)] hover:shadow-[0_0_20px_rgba(74,222,128,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#4ADE80] hover:bg-[#3ec46d] text-black px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 shadow-[0_0_15px_rgba(74,222,128,0.25)] hover:shadow-[0_0_20px_rgba(74,222,128,0.4)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />
@@ -521,7 +521,7 @@ const ProblemPage = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`h-full flex items-center gap-2 text-sm font-medium border-b-2 transition-all duration-200 px-1 whitespace-nowrap ${
+                  className={`h-full flex items-center gap-2 text-sm font-medium border-b-2 transition-all duration-200 px-1 cursor-pointer whitespace-nowrap ${
                     activeTab === tab
                       ? "text-white border-[#4ADE80]"
                       : "text-gray-500 border-transparent hover:text-gray-300"

@@ -21,6 +21,7 @@ const register = async (req, res) => {
 
         req.body.password = await bcrypt.hash(password, 10);
         req.body.role = 'user';
+        req.body.authProvider = 'local';
 
         const user = await User.create(req.body);
 
@@ -32,6 +33,7 @@ const register = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             role: user.role,
+            avatar: user.avatar,
             _id: user._id
         }
 
@@ -69,6 +71,7 @@ const login = async (req, res) => {
             firstName: user.firstName,
             emailId: user.emailId,
             role: user.role,
+            avatar: user.avatar,
             _id: user._id
         }
 

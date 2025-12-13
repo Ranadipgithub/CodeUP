@@ -194,7 +194,8 @@ const Login = () => {
   const location = useLocation();
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
 
-  const from = location.state?.from || "/";
+  const from = location.state?.from?.pathname || location.state?.from || "/";
+  const backend_url = import.meta.env.VITE_BACKEND_URL;
 
   const {
     register,
@@ -219,6 +220,12 @@ const Login = () => {
       navigate(from, { replace: true });
     }
   }
+
+  const handleGoogleLogin = () => {
+    console.log("Saving return path:", from); // Debugging
+    localStorage.setItem("auth_return_path", from);
+    window.open(`${backend_url}/auth/google`, "_self");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-black relative overflow-hidden">
@@ -274,8 +281,8 @@ const Login = () => {
           {/* Google Button */}
           <button
             type="button"
-            // onClick={handleGoogleSignup}
-            className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white py-3 rounded-lg border border-white/10 flex items-center justify-center gap-3 transition-colors font-medium"
+            onClick={handleGoogleLogin}
+            className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white py-3 rounded-lg border border-white/10 flex items-center justify-center gap-3 transition-colors font-medium cursor-pointer"
           >
             <img src={glogo} alt="Google" width="20" height="20" />
             Continue with Google

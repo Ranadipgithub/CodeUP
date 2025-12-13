@@ -1,49 +1,50 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    firstName: {
-        type: String,
-        required: true,
-        minLength: 2,
-        maxLength: 30
+  authProvider: {
+    type: String,
+    enum: ["local", "google"],
+    required: true,
+    default: "local"
+  },
+  firstName: {
+    type: String,
+    required: function () {
+      return this.authProvider === "local";
     },
-    lastName: {
-        type: String,
-        // required: true,
-        minLength: 2,
-        maxLength: 30
-    },
-    emailId: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        lowercase: true,
-        immutable: true
-    },
-    age: {
-        type: Number,
-        min: 5,
-        max: 90
-    },
-    role: {
-        type: String,
-        enum: ['user', 'admin'],
-        default: 'user'
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    problemSolved: {
-        type:[{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Problem",
-            unique: true
-        }],
-        // unique:true
+    minLength: 2,
+    maxLength: 30
+  },
+  lastName: {
+    type: String
+  },
+  emailId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    immutable: true
+  },
+  password: {
+    type: String,
+    required: function () {
+      return this.authProvider === "local";
     }
+  },
+  googleId: String,
+  avatar: String,
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+  },
+  problemSolved: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Problem"
+  }]
 }, { timestamps: true });
+
 
 userSchema.post('findOneAndDelete', async function(userInfo) {
     if(userInfo) {
