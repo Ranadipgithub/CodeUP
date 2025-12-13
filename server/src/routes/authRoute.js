@@ -5,6 +5,13 @@ const userMiddleware = require("../middleware/userMiddleware");
 
 const router = express.Router();
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,        // REQUIRED for SameSite=None
+  sameSite: "none",    // REQUIRED for cross-site
+  maxAge: 3600000,
+};
+
 // step-1: redirect to google
 router.get(
   "/google",
@@ -19,7 +26,7 @@ router.get(
       const token = jwt.sign({ _id: req.user._id }, process.env.JWT_SECRET, {
         expiresIn: "1h",
       });
-      res.cookie("token", token, { httpOnly: true });
+      res.cookie("token", token, cookieOptions);
       res.redirect(`${process.env.CLIENT_URL}/auth-success`);
     } catch (error) {
       console.log(error);
