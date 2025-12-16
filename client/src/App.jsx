@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useState } from "react"; // Import useState
+import { useEffect, useState } from "react";
 import { checkAuth } from "./authSlice";
 import { Spinner } from "./components/ui/spinner";
 import { Toaster } from "sonner";
@@ -15,6 +15,9 @@ import AdminCreate from "./pages/AdminCreate";
 import UpdateProblem from "./components/updateProblem";
 import AdminUpload from "./pages/AdminUpload";
 import AuthSuccess from "./pages/AuthSuccess";
+import Contest from "./pages/Contest";
+import Discuss from "./pages/Discuss";
+import NotFound from "./pages/NotFound";
 
 function App() {
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
@@ -43,6 +46,9 @@ function App() {
         <Route element={<MainLayout />}>
           <Route element={<HomePage />} path="/" />
           <Route path="/problems" element={<ProblemsPage />} />
+          <Route path="/contests" element={<Contest />} />
+          <Route path="/discuss" element={<Discuss />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         {/* Auth Routes */}
