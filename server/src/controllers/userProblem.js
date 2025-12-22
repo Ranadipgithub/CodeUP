@@ -9,6 +9,19 @@ const {
   submitToken,
 } = require("../utils/problemUtility");
 
+// Helper function to clear pagination cache
+const clearPaginationCache = async () => {
+  try {
+    const keys = await redisClient.keys('problems_page_*');
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+      console.log("Pagination cache cleared");
+    }
+  } catch (error) {
+    console.error("Error clearing pagination cache:", error);
+  }
+};
+
 const createProblem = async (req, res) => {
   const {
     title,
@@ -23,20 +36,10 @@ const createProblem = async (req, res) => {
   } = req.body;
 
   try {
-    // Check if a problem with the same title already exists
-    // const existingProblem = await Problem.findOne({ title });
-    // if (existingProblem) {
-    //   return res.status(400).json({ error: "A problem with this title already exists" });
-    // }
-
     for (const element of referenceSolution) {
       const { language, completeCode } = element;
-
       const languageId = getLanguageId(language);
 
-      // creating batch submissions for all visible test cases
-      // console.log(visibleTestCases);
-      // It is an array of objects containing input, output, source_code, language_id
       const submissions = visibleTestCases.map((testCase) => ({
         source_code: completeCode,
         language_id: languageId,
@@ -44,34 +47,29 @@ const createProblem = async (req, res) => {
         expected_output: testCase.output,
       }));
 
-      // submitResult is a token of all submissions
       const submitResult = await submitBatch(submissions);
-
-      // console.log(submitResult);
-      // we have to again send a GET request to get the results using the token
-      // while doing batch submission, we have to send those tokens in the form of a string separated by comma
-      // e.g., "token1,token2,token3,..."
       const resultToken = submitResult.map((item) => item.token).join(",");
-
       const testResult = await submitToken(resultToken);
 
       for (const test of testResult) {
         if (test.status.id !== 3) {
           return res.status(400).json({
-            error:
-              "Reference solution failed on some visible test cases. Please check the reference solution.",
+            error: "Reference solution failed on some visible test cases. Please check the reference solution.",
           });
         }
       }
     }
-    // if all reference solutions pass the visible test cases, create the problem
-    await Problem.create({
+
+    const newProblem = await Problem.create({
       ...req.body,
       problemCreator: req.result._id,
     });
 
+    // INVALIDATE CACHE
     await redisClient.del("all_problems");
-    res.status(201).json({ message: "Problem created successfully" });
+    await clearPaginationCache(); // Clears all pages so the new problem appears immediately
+
+    res.status(201).json({ message: "Problem created successfully", problem: newProblem });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -90,6 +88,7 @@ const updateProblem = async (req, res) => {
     referenceSolution,
     problemCreator,
   } = req.body;
+
   try {
     if (!id) {
       return res.status(400).json({ error: "Problem ID is required" });
@@ -98,38 +97,30 @@ const updateProblem = async (req, res) => {
     if (!problem) {
       return res.status(404).json({ error: "Problem not found" });
     }
-    for (const element of referenceSolution) {
-      const { language, completeCode } = element;
 
-      const languageId = getLanguageId(language);
+    // Validate reference solution if provided
+    if (referenceSolution && referenceSolution.length > 0) {
+      for (const element of referenceSolution) {
+        const { language, completeCode } = element;
+        const languageId = getLanguageId(language);
 
-      // creating batch submissions for all visible test cases
-      // console.log(visibleTestCases);
-      // It is an array of objects containing input, output, source_code, language_id
-      const submissions = visibleTestCases.map((testCase) => ({
-        source_code: completeCode,
-        language_id: languageId,
-        stdin: testCase.input,
-        expected_output: testCase.output,
-      }));
+        const submissions = visibleTestCases.map((testCase) => ({
+          source_code: completeCode,
+          language_id: languageId,
+          stdin: testCase.input,
+          expected_output: testCase.output,
+        }));
 
-      // submitResult is a token of all submissions
-      const submitResult = await submitBatch(submissions);
+        const submitResult = await submitBatch(submissions);
+        const resultToken = submitResult.map((item) => item.token).join(",");
+        const testResult = await submitToken(resultToken);
 
-      // console.log(submitResult);
-      // we have to again send a GET request to get the results using the token
-      // while doing batch submission, we have to send those tokens in the form of a string separated by comma
-      // e.g., "token1,token2,token3,..."
-      const resultToken = submitResult.map((item) => item.token).join(",");
-
-      const testResult = await submitToken(resultToken);
-
-      for (const test of testResult) {
-        if (test.status.id !== 3) {
-          return res.status(400).json({
-            error:
-              "Reference solution failed on some visible test cases. Please check the reference solution.",
-          });
+        for (const test of testResult) {
+          if (test.status.id !== 3) {
+            return res.status(400).json({
+              error: "Reference solution failed on some visible test cases.",
+            });
+          }
         }
       }
     }
@@ -140,40 +131,24 @@ const updateProblem = async (req, res) => {
       { runValidators: true, new: true }
     );
 
+    // INVALIDATE CACHE
     await redisClient.del("all_problems");
     await redisClient.del(`problem:${id}`);
+    await clearPaginationCache(); // Clear pagination cache on update
 
-    res
-      .status(200)
-      .json({
-        message: "Problem updated successfully",
-        problem: updatedProblem,
-      });
+    res.status(200).json({
+      message: "Problem updated successfully",
+      problem: updatedProblem,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-const getProblemByIdAllInfo = async (req, res) => {
-  const { id } = req.params;
-  try {
-    if(!id) {
-      return res.status(400).json({ error: "Problem ID is required" });
-    }
-    const problem = await Problem.findById(id);
-    if (!problem) {
-      return res.status(404).json({ error: "Problem not found" });
-    }
-    res.status(200).json({ problem });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-}
-
 const deleteProblem = async (req, res) => {
   const { id } = req.params;
   try {
-    if(!id) {
+    if (!id) {
       return res.status(400).json({ error: "Problem ID is required" });
     }
     const deletedProblem = await Problem.findByIdAndDelete(id);
@@ -181,13 +156,16 @@ const deleteProblem = async (req, res) => {
       return res.status(404).json({ error: "Problem not found" });
     }
 
+    // INVALIDATE CACHE
     await redisClient.del("all_problems");
     await redisClient.del(`problem:${id}`);
+    await clearPaginationCache(); // Clear pagination cache on delete
+
     res.status(200).json({ message: "Problem deleted successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-}
+};
 
 const getProblemById = async (req, res) => {
   const { id } = req.params;
@@ -199,15 +177,13 @@ const getProblemById = async (req, res) => {
 
     // Fetch problem from redis if exists
     const problemFromRedis = await redisClient.get(REDIS_KEY);
-    if(problemFromRedis) {
+    if (problemFromRedis) {
       console.log("Cache hit problem id");
       return res.status(200).json({ problem: JSON.parse(problemFromRedis) });
     }
 
     console.log("Cache miss problem id");
 
-    // 1. Fetch Problem as a Plain Object (.lean())
-    // We remove .toObject() later because .lean() already gives us a JS object
     const problem = await Problem.findById(id)
       .select('_id title description difficulty tags visibleTestCases startCode referenceSolution')
       .lean();
@@ -217,20 +193,8 @@ const getProblemById = async (req, res) => {
     }
 
     // Store problem in redis
-    await redisClient.set(REDIS_KEY, JSON.stringify(problem));
+    await redisClient.set(REDIS_KEY, JSON.stringify(problem), 'EX', 3600); // Expires in 1 hour
 
-    // 2. Fetch Video
-    // const videos = await SolutionVideo.findOne({ problemId: id }).lean();
-
-    // // 3. Attach video info if it exists
-    // if (videos) {
-    //   problem.secureUrl = videos.secureUrl;
-    //   problem.duration = videos.duration;
-    //   problem.thumbnailUrl = videos.thumbnailUrl;
-    // }
-
-    // 4. Send Response
-    // We wrap it in { problem } to maintain consistency for the frontend
     return res.status(200).json({ problem });
 
   } catch (error) {
@@ -243,9 +207,9 @@ const getAllProblem = async (req, res) => {
   const cache_key = "all_problems";
   try {
     const cachedProblems = await redisClient.get(cache_key);
-    if(cachedProblems) {
+    if (cachedProblems) {
       console.log("Cache hit");
-      return res.status(200).json({problems: JSON.parse(cachedProblems)});
+      return res.status(200).json({ problems: JSON.parse(cachedProblems) });
     }
 
     console.log("Cache miss");
@@ -255,16 +219,13 @@ const getAllProblem = async (req, res) => {
       return res.status(404).json({ error: "No problems found" });
     }
 
-    await redisClient.set(cache_key, JSON.stringify(problems), 'EX', 60 * 60); // 1 hour
-    res.status(200).json({problems});
+    await redisClient.set(cache_key, JSON.stringify(problems), 'EX', 3600); // 1 hour
+    res.status(200).json({ problems });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-// Pagination
-// localhost:3000/problem/getAllProblems?page=2&limit=10
-// const getProblem = await Problem.find().skip((page - 1) * limit).limit(limit);
 const getProblemsByPage = async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
   const pageNum = Number(page);
@@ -281,14 +242,21 @@ const getProblemsByPage = async (req, res) => {
     }
 
     console.log("Cache miss");
-    
+
     // Fetch Data & Count in parallel
     const [problems, total] = await Promise.all([
       Problem.find().skip((pageNum - 1) * limitNum).limit(limitNum),
-      Problem.countDocuments() // We need total count for pagination
+      Problem.countDocuments()
     ]);
 
-    if (problems.length === 0) {
+    if (problems.length === 0 && total > 0 && pageNum > 1) {
+       // If page is empty but problems exist (e.g. user requested page 10 but we only have 5 pages)
+       // You might optionally want to return empty array or 404. 
+       // Currently standard behavior is returning empty array or 404 if truly no docs.
+       return res.status(404).json({ error: "No problems found on this page" });
+    }
+
+    if (problems.length === 0 && total === 0) {
       return res.status(404).json({ error: "No problems found" });
     }
 
@@ -296,9 +264,10 @@ const getProblemsByPage = async (req, res) => {
       problems,
       totalPages: Math.ceil(total / limitNum),
       currentPage: pageNum,
+      totalProblems: total
     };
 
-    // Cache the full response (including pagination meta)
+    // Cache the full response
     await redisClient.setEx(cache_key, 3600, JSON.stringify(response));
 
     res.status(200).json(response);
@@ -307,36 +276,48 @@ const getProblemsByPage = async (req, res) => {
   }
 };
 
-// Filter
-// localhost:3000/problem/getAllProblems?difficulty=easy&tags=arrays&tags=strings
-// await Problem.find({ difficulty: 'easy', tags: { $in: ['arrays', 'strings'] } });
+const getProblemByIdAllInfo = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!id) {
+      return res.status(400).json({ error: "Problem ID is required" });
+    }
+    const problem = await Problem.findById(id);
+    if (!problem) {
+      return res.status(404).json({ error: "Problem not found" });
+    }
+    res.status(200).json({ problem });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 
 const getsolvedProblemsByUser = async (req, res) => {
   try {
     const userId = req.user._id;
     const user = await User.findById(userId).populate({
-      path:"problemSolved",
+      path: "problemSolved",
       select: "_id title difficulty tags"
     });
-    res.status(200).json( user.problemSolved );
+    res.status(200).json(user.problemSolved);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
 const submittedProblems = async (req, res) => {
-  try{
+  try {
     const userId = req.user._id;
     const problemId = req.params.pid;
     const submissions = await Submission.find({ userId, problemId });
-    if(submissions.length === 0){
+    if (submissions.length === 0) {
       return res.status(404).json({ error: "No submissions found for this problem by the user" });
     }
     res.status(200).json({ submissions });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-}
+};
 
 module.exports = {
   createProblem,

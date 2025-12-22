@@ -51,7 +51,7 @@ const HomePage = () => {
             <p className="text-gray-400 text-lg leading-relaxed max-w-lg font-light">
               Build your future with us by building code. Whether you're a beginner or an experienced developer, CodeUp provides a dynamic learning experience
             </p>
-            <button onClick={() => navigate('/problems')} className="bg-[#4ADE80] text-black px-9 py-4 rounded font-bold text-lg hover:bg-[#3ec46d] transition-transform active:scale-95 glow-green mt-4">
+            <button onClick={() => navigate('/problems')} className="bg-[#4ADE80] text-black px-9 py-4 rounded font-bold text-lg hover:bg-[#3ec46d] transition-transform active:scale-95 glow-green mt-4 cursor-pointer">
               Get Started Now
             </button>
           </div>
