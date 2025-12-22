@@ -42,8 +42,10 @@ const ProblemsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // --- FILTER STATES ---
+  const [searchQuery, setSearchQuery] = useState(""); // Immediate input state
+  const [debouncedSearch, setDebouncedSearch] = useState(""); // Delayed state for API
+  
   const [filters, setFilters] = useState({
-    search: "",
     difficulty: "All",
     status: "All",
     topic: "All"
@@ -51,46 +53,76 @@ const ProblemsPage = () => {
 
   const [activeDropdown, setActiveDropdown] = useState(null);
 
+  // --- DEBOUNCE SEARCH ---
+  // Waits 500ms after typing stops before updating debouncedSearch
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // --- API FETCHING ---
-  const fetchProblems = async (page) => {
-    setIsLoading(true);
-    try {
-      // Backend integration
-      const response = await axiosClient.get(`/problem/getProblemsByPage?page=${page}&limit=20`);
-      const data = response.data;
-      
-      const problemsArray = Array.isArray(data.problems) ? data.problems : [];
-      setProblems(problemsArray);
-      
-      setTotalPages(data.totalPages || 1);
-      setCurrentPage(data.currentPage || page);
-      
-    } catch (error) {
-      console.error("fetchProblems:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchSolvedProblems = async () => {
-    try {
-      const { data } = await axiosClient.get("/problem/problemSolvedByUser");
-      setSolvedProblems(Array.isArray(data) ? data : (data.solvedProblems || []));
-    } catch (error) {
-      console.error("fetchSolvedProblems:", error);
-    }
-  };
-
+  // Triggers whenever Page, Search, or Filters change
   useEffect(() => {
-    fetchProblems(currentPage);
-  }, [currentPage]);
+    const fetchProblems = async () => {
+      setIsLoading(true);
+      try {
+        // Build Query Params
+        const params = new URLSearchParams({
+          page: currentPage,
+          limit: 20,
+        });
 
+        if (debouncedSearch) params.append("search", debouncedSearch);
+        if (filters.difficulty !== "All") params.append("difficulty", filters.difficulty);
+        if (filters.topic !== "All") params.append("tags", filters.topic);
+        
+        // Note: 'status' (Solved/Unsolved) usually requires checking user data on the backend
+        // or filtering on frontend. For now, we'll filter status on frontend if backend doesn't support it.
+
+        const response = await axiosClient.get(`/problem/getProblemsByPage?${params.toString()}`);
+        const data = response.data;
+        
+        const problemsArray = Array.isArray(data.problems) ? data.problems : [];
+        setProblems(problemsArray);
+        
+        setTotalPages(data.totalPages || 1);
+        // Don't force set current page here, trust the state unless backend corrects us
+        
+      } catch (error) {
+        console.error("fetchProblems:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProblems();
+  }, [currentPage, debouncedSearch, filters.difficulty, filters.topic]); 
+  // Dependency array ensures fetch happens automatically on change
+
+  // Reset to Page 1 when filters change (but not when page changes)
   useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filters]);
+
+
+  // --- SOLVED PROBLEMS FETCH ---
+  useEffect(() => {
+    const fetchSolvedProblems = async () => {
+      try {
+        const { data } = await axiosClient.get("/problem/problemSolvedByUser");
+        setSolvedProblems(Array.isArray(data) ? data : (data.solvedProblems || []));
+      } catch (error) {
+        console.error("fetchSolvedProblems:", error);
+      }
+    };
     if (user) fetchSolvedProblems();
   }, [user]);
 
 
-  // --- HELPERS ---
+  // --- LOGIC HELPERS ---
   const solvedIds = useMemo(() => {
     const set = new Set();
     for (const item of solvedProblems) {
@@ -108,6 +140,8 @@ const ProblemsPage = () => {
     return solvedIds.has(id);
   };
 
+  // Extract tags from currently loaded problems for the pill selector
+  // (Ideally, fetch all tags from a dedicated API endpoint for a global list)
   const uniqueTags = useMemo(() => {
     const tags = new Set();
     problems.forEach(p => {
@@ -116,22 +150,18 @@ const ProblemsPage = () => {
     return Array.from(tags).sort();
   }, [problems]);
 
-  const filteredProblems = useMemo(() => {
+  // Client-side filtering for STATUS only (since solved status is user-specific)
+  const displayProblems = useMemo(() => {
     return problems.filter(problem => {
-      const matchesSearch = problem.title.toLowerCase().includes(filters.search.toLowerCase());
-      const matchesDifficulty = filters.difficulty === "All" || problem.difficulty?.toLowerCase() === filters.difficulty.toLowerCase();
-      const matchesTopic = filters.topic === "All" || problem.tags === filters.topic;
-      
-      let matchesStatus = true;
-      if (filters.status === "Solved") matchesStatus = isSolved(problem);
-      else if (filters.status === "Unsolved") matchesStatus = !isSolved(problem);
-
-      return matchesSearch && matchesDifficulty && matchesTopic && matchesStatus;
+      if (filters.status === "Solved") return isSolved(problem);
+      if (filters.status === "Unsolved") return !isSolved(problem);
+      return true;
     });
-  }, [problems, filters, solvedIds]);
+  }, [problems, filters.status, solvedIds]);
 
   const resetFilters = () => {
-    setFilters({ search: "", difficulty: "All", topic: "All", status: "All" });
+    setFilters({ difficulty: "All", topic: "All", status: "All" });
+    setSearchQuery("");
     setActiveDropdown(null);
   };
 
@@ -148,15 +178,13 @@ const ProblemsPage = () => {
     }
   };
 
-  // --- PAGINATION LOGIC (Generates page numbers) ---
+  // --- PAGINATION RENDERING ---
   const renderPaginationItems = () => {
     const items = [];
     const maxVisiblePages = 5;
 
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        items.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) items.push(i);
     } else {
       if (currentPage <= 3) {
         items.push(1, 2, 3, "ellipsis", totalPages);
@@ -222,18 +250,19 @@ const ProblemsPage = () => {
 
           {/* 2. FILTER BAR */}
           <div className="flex flex-wrap items-center gap-4 mb-6">
+            
             {/* Search */}
             <div className="relative flex-1 min-w-[200px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
               <input 
                 type="text" 
-                value={filters.search} 
-                onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))} 
-                placeholder="Search questions (current page)" 
+                value={searchQuery} // Binds to immediate state
+                onChange={(e) => setSearchQuery(e.target.value)} // Updates immediate state
+                placeholder="Search questions" 
                 className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg py-2.5 pl-10 pr-10 text-base text-gray-200 focus:outline-none focus:border-[#4ADE80] transition-colors placeholder:text-gray-600" 
               />
-              {filters.search && (
-                <button onClick={() => setFilters(prev => ({...prev, search: ""}))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
                   <X size={16} />
                 </button>
               )}
@@ -271,7 +300,7 @@ const ProblemsPage = () => {
                 onClose={() => setActiveDropdown(null)} 
               />
 
-              {(filters.difficulty !== 'All' || filters.status !== 'All' || filters.topic !== 'All' || filters.search) && (
+              {(filters.difficulty !== 'All' || filters.status !== 'All' || filters.topic !== 'All' || searchQuery) && (
                 <button onClick={resetFilters} className="flex items-center gap-1 text-[#FF375F] text-sm font-medium hover:bg-[#FF375F]/10 px-3 py-2 rounded-lg transition-colors">
                   <RotateCcw size={14} /> Reset
                 </button>
@@ -293,8 +322,8 @@ const ProblemsPage = () => {
                    
                    {isLoading ? (
                      <div className="h-64 flex items-center justify-center text-gray-500">Loading problems...</div>
-                   ) : filteredProblems.length > 0 ? (
-                     filteredProblems.map((problem, idx) => {
+                   ) : displayProblems.length > 0 ? (
+                    displayProblems.map((problem, idx) => {
                        const solved = isSolved(problem);
                        return (
                         <div 
@@ -384,7 +413,6 @@ const ProblemsPage = () => {
 
         {/* RIGHT COLUMN */}
         <div className="w-full lg:w-[360px] flex flex-col gap-6">
-           {/* Sidebar content stays the same */}
            <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-5 shadow-lg">
               <div className="flex items-center justify-between mb-5">
                  <div className="font-bold text-gray-200 flex items-center gap-2 text-base">

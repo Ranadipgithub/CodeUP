@@ -9,13 +9,14 @@ const {
   submitToken,
 } = require("../utils/problemUtility");
 
-// Helper function to clear pagination cache
+// Helper function to clear pagination/search cache
+// This clears ANY key starting with "problems_page_"
 const clearPaginationCache = async () => {
   try {
     const keys = await redisClient.keys('problems_page_*');
     if (keys.length > 0) {
       await redisClient.del(keys);
-      console.log("Pagination cache cleared");
+      console.log("Pagination and search cache cleared");
     }
   } catch (error) {
     console.error("Error clearing pagination cache:", error);
@@ -36,6 +37,7 @@ const createProblem = async (req, res) => {
   } = req.body;
 
   try {
+    // Validate Reference Solution
     for (const element of referenceSolution) {
       const { language, completeCode } = element;
       const languageId = getLanguageId(language);
@@ -67,7 +69,7 @@ const createProblem = async (req, res) => {
 
     // INVALIDATE CACHE
     await redisClient.del("all_problems");
-    await clearPaginationCache(); // Clears all pages so the new problem appears immediately
+    await clearPaginationCache(); // Force database refresh for new items
 
     res.status(201).json({ message: "Problem created successfully", problem: newProblem });
   } catch (error) {
@@ -78,15 +80,8 @@ const createProblem = async (req, res) => {
 const updateProblem = async (req, res) => {
   const { id } = req.params;
   const {
-    title,
-    description,
-    difficulty,
-    tags,
     visibleTestCases,
-    hiddenTestCases,
-    startCode,
     referenceSolution,
-    problemCreator,
   } = req.body;
 
   try {
@@ -134,7 +129,7 @@ const updateProblem = async (req, res) => {
     // INVALIDATE CACHE
     await redisClient.del("all_problems");
     await redisClient.del(`problem:${id}`);
-    await clearPaginationCache(); // Clear pagination cache on update
+    await clearPaginationCache(); // Force database refresh on updates
 
     res.status(200).json({
       message: "Problem updated successfully",
@@ -159,7 +154,7 @@ const deleteProblem = async (req, res) => {
     // INVALIDATE CACHE
     await redisClient.del("all_problems");
     await redisClient.del(`problem:${id}`);
-    await clearPaginationCache(); // Clear pagination cache on delete
+    await clearPaginationCache(); // Force database refresh on delete
 
     res.status(200).json({ message: "Problem deleted successfully" });
   } catch (error) {
@@ -226,38 +221,66 @@ const getAllProblem = async (req, res) => {
   }
 };
 
+// --- UPDATED CONTROLLER: HANDLES PAGINATION, SEARCH, AND FILTERS ---
 const getProblemsByPage = async (req, res) => {
-  const { page = 1, limit = 20 } = req.query;
+  const { page = 1, limit = 20, search, difficulty, tags } = req.query;
   const pageNum = Number(page);
   const limitNum = Number(limit);
 
-  const cache_key = `problems_page_${pageNum}_limit_${limitNum}`;
+  // 1. Create a Unique Cache Key
+  // We must include search, difficulty, and tags in the key, 
+  // otherwise searching for "Hard" might return the "Easy" cached page.
+  const cache_key = `problems_page_${pageNum}_limit_${limitNum}_search_${search || 'none'}_diff_${difficulty || 'all'}_tags_${tags || 'all'}`;
 
   try {
-    // Check Cache
+    // 2. Check Cache
     const cachedData = await redisClient.get(cache_key);
     if (cachedData) {
-      console.log("Cache hit");
+      console.log("Cache hit (Search/Page)");
       return res.status(200).json(JSON.parse(cachedData));
     }
 
-    console.log("Cache miss");
+    console.log("Cache miss (Search/Page)");
 
-    // Fetch Data & Count in parallel
-    const [problems, total] = await Promise.all([
-      Problem.find().skip((pageNum - 1) * limitNum).limit(limitNum),
-      Problem.countDocuments()
-    ]);
-
-    if (problems.length === 0 && total > 0 && pageNum > 1) {
-       // If page is empty but problems exist (e.g. user requested page 10 but we only have 5 pages)
-       // You might optionally want to return empty array or 404. 
-       // Currently standard behavior is returning empty array or 404 if truly no docs.
-       return res.status(404).json({ error: "No problems found on this page" });
+    // 3. Build Dynamic Query Object
+    let query = {};
+    
+    // Search by Title (Case Insensitive Regex)
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
     }
 
+    // Filter by Difficulty
+    if (difficulty && difficulty !== "All") {
+      query.difficulty = difficulty;
+    }
+
+    // Filter by Tags
+    if (tags && tags !== "All") {
+      query.tags = tags; 
+    }
+
+    // 4. Fetch Data & Count in Parallel
+    const [problems, total] = await Promise.all([
+      Problem.find(query)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .select('_id title difficulty tags'), // Optimize: Select only needed fields
+      
+      Problem.countDocuments(query)
+    ]);
+
+    // Handle Empty Results
     if (problems.length === 0 && total === 0) {
-      return res.status(404).json({ error: "No problems found" });
+      // It is better to return empty array with 200 OK for search results than 404
+      // so the frontend can display "No results found" gracefully.
+      const emptyResponse = {
+        problems: [],
+        totalPages: 0,
+        currentPage: pageNum,
+        totalProblems: 0
+      };
+      return res.status(200).json(emptyResponse);
     }
 
     const response = {
@@ -267,8 +290,10 @@ const getProblemsByPage = async (req, res) => {
       totalProblems: total
     };
 
-    // Cache the full response
-    await redisClient.setEx(cache_key, 3600, JSON.stringify(response));
+    // 5. Cache the Response
+    // We use a shorter cache time (e.g., 600s / 10 mins) for search results 
+    // to avoid storing too many unique search combinations for too long.
+    await redisClient.setEx(cache_key, 600, JSON.stringify(response));
 
     res.status(200).json(response);
   } catch (error) {
