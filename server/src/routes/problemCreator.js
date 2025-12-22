@@ -1,7 +1,7 @@
 const express = require('express');
 const problemRouter = express.Router();
 const adminMiddleware = require('../middleware/adminMiddleware');
-const { createProblem, updateProblem, deleteProblem, getProblemById, getAllProblem, getsolvedProblemsByUser, submittedProblems, getProblemByIdAllInfo } = require('../controllers/userProblem');
+const { createProblem, updateProblem, deleteProblem, getProblemById, getAllProblem, getsolvedProblemsByUser, submittedProblems, getProblemByIdAllInfo, getProblemsByPage } = require('../controllers/userProblem');
 const userMiddleware = require('../middleware/userMiddleware');
 
 // only admins can create, update or delete problems
@@ -12,6 +12,7 @@ problemRouter.get('/problemById/allInfo/:id', adminMiddleware, getProblemByIdAll
 
 problemRouter.get('/problemById/:id', getProblemById);
 problemRouter.get('/getAllProblem', getAllProblem);
+problemRouter.get('/getProblemsByPage', getProblemsByPage);
 problemRouter.get('/problemSolvedByUser', userMiddleware, getsolvedProblemsByUser);
 problemRouter.get('/submittedProblems/:pid', userMiddleware, submittedProblems);
 

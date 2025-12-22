@@ -23,6 +23,12 @@ const createProblem = async (req, res) => {
   } = req.body;
 
   try {
+    // Check if a problem with the same title already exists
+    // const existingProblem = await Problem.findOne({ title });
+    // if (existingProblem) {
+    //   return res.status(400).json({ error: "A problem with this title already exists" });
+    // }
+
     for (const element of referenceSolution) {
       const { language, completeCode } = element;
 
@@ -259,7 +265,47 @@ const getAllProblem = async (req, res) => {
 // Pagination
 // localhost:3000/problem/getAllProblems?page=2&limit=10
 // const getProblem = await Problem.find().skip((page - 1) * limit).limit(limit);
+const getProblemsByPage = async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const pageNum = Number(page);
+  const limitNum = Number(limit);
 
+  const cache_key = `problems_page_${pageNum}_limit_${limitNum}`;
+
+  try {
+    // Check Cache
+    const cachedData = await redisClient.get(cache_key);
+    if (cachedData) {
+      console.log("Cache hit");
+      return res.status(200).json(JSON.parse(cachedData));
+    }
+
+    console.log("Cache miss");
+    
+    // Fetch Data & Count in parallel
+    const [problems, total] = await Promise.all([
+      Problem.find().skip((pageNum - 1) * limitNum).limit(limitNum),
+      Problem.countDocuments() // We need total count for pagination
+    ]);
+
+    if (problems.length === 0) {
+      return res.status(404).json({ error: "No problems found" });
+    }
+
+    const response = {
+      problems,
+      totalPages: Math.ceil(total / limitNum),
+      currentPage: pageNum,
+    };
+
+    // Cache the full response (including pagination meta)
+    await redisClient.setEx(cache_key, 3600, JSON.stringify(response));
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 
 // Filter
 // localhost:3000/problem/getAllProblems?difficulty=easy&tags=arrays&tags=strings
@@ -300,5 +346,6 @@ module.exports = {
   getAllProblem,
   getsolvedProblemsByUser,
   submittedProblems,
-  getProblemByIdAllInfo
+  getProblemByIdAllInfo,
+  getProblemsByPage,
 };
