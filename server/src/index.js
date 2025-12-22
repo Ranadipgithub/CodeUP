@@ -29,6 +29,10 @@ app.use('/video', require('./routes/videoCreator'));
 app.use('/admin', require('./routes/admin'));
 app.use('/auth', require('./routes/authRoute'));
 
+app.get('/ping', (req, res) => {
+  res.send('server is awake');
+})
+
 const initializeConnection = async () => {
   try {
     await main();               // mongo connect
