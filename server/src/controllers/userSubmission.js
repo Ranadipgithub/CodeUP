@@ -74,7 +74,10 @@ const submitCode = async (req, res) => {
         submittedResult.errorMessage = errorMessage || "";
         await submittedResult.save();
 
-        await User.findByIdAndUpdate(userId, { $addToSet: { problemSolved: problemId } }).exec();
+        if(testCasesPassed === problem.hiddenTestCases.length){
+            // update user's problemSolved list
+            await User.findByIdAndUpdate(userId, { $addToSet: { problemSolved: problemId } }).exec();
+        }
 
         res.status(200).json({ submittedResult });
     } catch (error) {
