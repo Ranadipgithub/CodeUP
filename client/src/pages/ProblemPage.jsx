@@ -27,144 +27,147 @@ import {
 } from "lucide-react";
 import ChatAI from "@/components/ChatAI";
 import Editorial from "@/components/Editorial";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
 
 const LanguageSelector = ({ selected, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-  
-    const languages = [
-      { id: "javascript", label: "JavaScript" },
-      { id: "cpp", label: "C++" },
-      { id: "java", label: "Java" },
-      { id: "python", label: "Python" },
-    ];
-  
-    const currentLang = languages.find((l) => l.id === selected) || languages[0];
-  
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsOpen(false);
-        }
-      };
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-  
-    return (
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 bg-green-400/10 text-green-400 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-400/20 hover:bg-green-400/20 transition-all duration-200 active:scale-95"
-        >
-          <Code2 size={14} />
-          {currentLang.label}
-          <ChevronDown
-            size={14}
-            className={`transition-transform duration-300 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-  
-        {isOpen && (
-          <div className="absolute top-full left-0 mt-2 w-40 bg-[#1e1e2e] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
-            {languages.map((lang) => (
-              <button
-                key={lang.id}
-                onClick={() => {
-                  onChange(lang.id);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 flex items-center justify-between ${
-                  selected === lang.id
-                    ? "bg-green-500/10 text-green-400"
-                    : "text-gray-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {lang.label}
-                {selected === lang.id && (
-                  <Check size={12} className="animate-fade-in" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const languages = [
+    { id: "javascript", label: "JavaScript" },
+    { id: "cpp", label: "C++" },
+    { id: "java", label: "Java" },
+    { id: "python", label: "Python" },
+  ];
+
+  const currentLang = languages.find((l) => l.id === selected) || languages[0];
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-green-400/10 text-green-400 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-400/20 hover:bg-green-400/20 transition-all duration-200 active:scale-95"
+      >
+        <Code2 size={14} />
+        {currentLang.label}
+        <ChevronDown
+          size={14}
+          className={`transition-transform duration-300 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-40 bg-[#1e1e2e] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+          {languages.map((lang) => (
+            <button
+              key={lang.id}
+              onClick={() => {
+                onChange(lang.id);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors duration-200 flex items-center justify-between ${
+                selected === lang.id
+                  ? "bg-green-500/10 text-green-400"
+                  : "text-gray-300 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {lang.label}
+              {selected === lang.id && (
+                <Check size={12} className="animate-fade-in" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const SubmissionModal = ({ isOpen, onClose, submission }) => {
-    if (!isOpen || !submission) return null;
-    const isAccepted = submission.status === "accepted";
-  
-    return (
-      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-        <div
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
-          onClick={onClose}
-        ></div>
-        <div className="relative w-full max-w-3xl bg-[#161b22] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d1117]">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-white">
-                Submission History
-              </h2>
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                  isAccepted
-                    ? "bg-green-500/10 text-green-400 border-green-500/20"
-                    : "bg-red-500/10 text-red-400 border-red-500/20"
-                }`}
-              >
-                {isAccepted ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                {isAccepted ? "Accepted" : "Wrong Answer"}
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors duration-200"
+  if (!isOpen || !submission) return null;
+  const isAccepted = submission.status === "accepted";
+
+  return (
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      ></div>
+      <div className="relative w-full max-w-3xl bg-[#161b22] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d1117]">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-white">
+              Submission History
+            </h2>
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
+                isAccepted
+                  ? "bg-green-500/10 text-green-400 border-green-500/20"
+                  : "bg-red-500/10 text-red-400 border-red-500/20"
+              }`}
             >
-              <X size={20} />
+              {isAccepted ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+              {/* FIX 1: Display actual status in Modal */}
+              <span className="capitalize">
+                {isAccepted ? "Accepted" : submission.status}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors duration-200"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="relative h-[400px] w-full bg-[#1e1e2e]">
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => navigator.clipboard.writeText(submission.code)}
+              className="flex items-center gap-2 px-2 py-1 bg-white/10 text-xs text-gray-300 rounded hover:bg-white/20 border border-white/5 transition-all duration-200"
+            >
+              <Copy size={12} /> Copy
             </button>
           </div>
-          <div className="relative h-[400px] w-full bg-[#1e1e2e]">
-            <div className="absolute top-4 right-4 z-10">
-              <button
-                onClick={() => navigator.clipboard.writeText(submission.code)}
-                className="flex items-center gap-2 px-2 py-1 bg-white/10 text-xs text-gray-300 rounded hover:bg-white/20 border border-white/5 transition-all duration-200"
-              >
-                <Copy size={12} /> Copy
-              </button>
-            </div>
-            <Editor
-              height="100%"
-              language={
-                submission.language === "c++" ? "cpp" : submission.language
-              }
-              theme="vs-dark"
-              value={submission.code}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                fontSize: 13,
-                fontFamily: "'JetBrains Mono', monospace",
-              }}
-            />
-          </div>
+          <Editor
+            height="100%"
+            language={
+              submission.language === "c++" ? "cpp" : submission.language
+            }
+            theme="vs-dark"
+            value={submission.code}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 13,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          />
         </div>
       </div>
-    );
+    </div>
+  );
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    });
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 };
 
 const ProblemPage = () => {
@@ -232,9 +235,9 @@ const ProblemPage = () => {
         const probData = response.data.problem;
         setProblem(probData);
 
-        const savedData = JSON.parse(
-          localStorage.getItem(`codeup_autosave_${problemId}`)
-        ) || {};
+        const savedData =
+          JSON.parse(localStorage.getItem(`codeup_autosave_${problemId}`)) ||
+          {};
 
         const lastUsedLang = savedData.lastUsed || "javascript";
         setSelectedLanguage(lastUsedLang);
@@ -261,9 +264,8 @@ const ProblemPage = () => {
   useEffect(() => {
     if (!problemId || loading || !code) return;
     const timeoutId = setTimeout(() => {
-      const savedData = JSON.parse(
-        localStorage.getItem(`codeup_autosave_${problemId}`)
-      ) || {};
+      const savedData =
+        JSON.parse(localStorage.getItem(`codeup_autosave_${problemId}`)) || {};
       savedData[selectedLanguage] = code;
       savedData.lastUsed = selectedLanguage;
       localStorage.setItem(
@@ -295,9 +297,8 @@ const ProblemPage = () => {
 
   const handleLanguageChange = (newLang) => {
     setSelectedLanguage(newLang);
-    const savedData = JSON.parse(
-      localStorage.getItem(`codeup_autosave_${problemId}`)
-    ) || {};
+    const savedData =
+      JSON.parse(localStorage.getItem(`codeup_autosave_${problemId}`)) || {};
 
     if (savedData[newLang]) {
       setCode(savedData[newLang]);
@@ -322,9 +323,13 @@ const ProblemPage = () => {
       );
       const originalCode = starter ? starter.initialCode : "";
       setCode(originalCode);
-      const savedData = JSON.parse(localStorage.getItem(`codeup_autosave_${problemId}`)) || {};
+      const savedData =
+        JSON.parse(localStorage.getItem(`codeup_autosave_${problemId}`)) || {};
       savedData[selectedLanguage] = originalCode;
-      localStorage.setItem(`codeup_autosave_${problemId}`, JSON.stringify(savedData));
+      localStorage.setItem(
+        `codeup_autosave_${problemId}`,
+        JSON.stringify(savedData)
+      );
     }
   };
 
@@ -336,7 +341,7 @@ const ProblemPage = () => {
   const handleRun = async () => {
     if (!isAuthenticated) {
       toast.error("Please login to run code", {
-        className: "bg-red-500/10 text-red-400 border border-red-500/20", 
+        className: "bg-red-500/10 text-red-400 border border-red-500/20",
       });
       return;
     }
@@ -391,9 +396,8 @@ const ProblemPage = () => {
       );
       setSubmitResult(data.submittedResult);
       setBottomTab("Result");
-      
-      toast.success("Submission received!");
 
+      toast.success("Submission received!");
     } catch (error) {
       console.error("Submission failed:", error);
       setSubmitResult({
@@ -425,11 +429,10 @@ const ProblemPage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] text-gray-300 font-sans animate-fade-in overflow-hidden">
-
       {/* Header and Layout */}
       <header className="h-[60px] bg-[#161616] border-b border-white/5 flex items-center justify-between px-6 z-20 shrink-0">
-         {/* Left Side */}
-         <div className="flex items-center gap-5">
+        {/* Left Side */}
+        <div className="flex items-center gap-5">
           <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 text-gray-400 hover:text-white"
@@ -452,7 +455,10 @@ const ProblemPage = () => {
                   <path d="M17 17l4-4-4-4" />
                 </svg>
               </div>
-              <span onClick={() => navigate('/')} className="font-bold text-xl text-white tracking-tight group-hover:text-[#4ADE80] transition-colors duration-300">
+              <span
+                onClick={() => navigate("/")}
+                className="font-bold text-xl text-white tracking-tight group-hover:text-[#4ADE80] transition-colors duration-300"
+              >
                 codeup
               </span>
             </div>
@@ -462,7 +468,7 @@ const ProblemPage = () => {
             </span>
           </div>
         </div>
-        
+
         {/* Right Side Buttons */}
         <div className="flex items-center gap-4">
           <button
@@ -499,7 +505,9 @@ const ProblemPage = () => {
             </div>
           ) : (
             <button
-              onClick={() => navigate("/login", {state: {from: location.pathname}})}
+              onClick={() =>
+                navigate("/login", { state: { from: location.pathname } })
+              }
               className="text-white font-semibold hover:text-gray-300 text-[16px] cursor-pointer ml-4"
             >
               Log In
@@ -534,8 +542,19 @@ const ProblemPage = () => {
           </div>
 
           {/* Left Pane Content Area - FIXED */}
-          <div className={`flex-1 ${activeTab === "ChatAI" ? "overflow-hidden flex flex-col" : "overflow-y-auto p-8"} scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent`}>
-            <div key={activeTab} className={`animate-slide-right ${activeTab === "ChatAI" ? "h-full" : ""}`}>
+          <div
+            className={`flex-1 ${
+              activeTab === "ChatAI"
+                ? "overflow-hidden flex flex-col"
+                : "overflow-y-auto p-8"
+            } scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent`}
+          >
+            <div
+              key={activeTab}
+              className={`animate-slide-right ${
+                activeTab === "ChatAI" ? "h-full" : ""
+              }`}
+            >
               {activeTab === "Description" && (
                 <>
                   <div className="flex items-center justify-between mb-6">
@@ -631,7 +650,12 @@ const ProblemPage = () => {
                                     : "text-red-400"
                                 }`}
                               >
-                                {sub.status === "accepted" ? "Accepted" : "WA"}
+                                {/* FIX 2: Display actual status in list */}
+                                <span className="capitalize">
+                                  {sub.status === "accepted"
+                                    ? "Accepted"
+                                    : sub.status}
+                                </span>
                               </td>
                               <td className="px-4 py-3 text-gray-400 capitalize">
                                 {sub.language}
@@ -649,7 +673,9 @@ const ProblemPage = () => {
               )}
 
               {activeTab === "ChatAI" && <ChatAI problem={problem} />}
-              {activeTab === "Editorial" && <Editorial problemId={problem._id} />}
+              {activeTab === "Editorial" && (
+                <Editorial problemId={problem._id} />
+              )}
             </div>
           </div>
         </div>
@@ -815,9 +841,12 @@ const ProblemPage = () => {
                           ) : (
                             <XCircle size={28} />
                           )}
-                          {submitResult.status === "accepted"
-                            ? "Accepted"
-                            : "Wrong Answer"}
+                          {/* FIX 3: Correctly Display Status (TLE, WA, etc.) */}
+                          <span className="capitalize">
+                            {submitResult.status === "accepted"
+                              ? "Accepted"
+                              : submitResult.status}
+                          </span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 transition-transform hover:scale-[1.02] duration-200">
@@ -839,7 +868,7 @@ const ProblemPage = () => {
                             </div>
                           </div>
                         </div>
-                        {submitResult.testCasesPassed && (
+                        {submitResult.testCasesPassed !== undefined && (
                           <div className="bg-[#1a1a1a] px-4 py-3 rounded-lg text-sm text-gray-300 border border-white/5">
                             Test cases passed:{" "}
                             <span className="text-white font-bold">
@@ -900,9 +929,7 @@ const ProblemPage = () => {
                               </div>
                               <div
                                 className={`px-4 py-3 rounded-lg border transition-colors duration-300 ${
-                                  runResults[
-                                    activeTestCaseId
-                                  ].stdout?.trim() ===
+                                  runResults[activeTestCaseId].stdout?.trim() ===
                                   problem.visibleTestCases[
                                     activeTestCaseId
                                   ].output.trim()
