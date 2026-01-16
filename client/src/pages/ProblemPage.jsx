@@ -119,7 +119,6 @@ const SubmissionModal = ({ isOpen, onClose, submission }) => {
               }`}
             >
               {isAccepted ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-              {/* FIX 1: Display actual status in Modal */}
               <span className="capitalize">
                 {isAccepted ? "Accepted" : submission.status}
               </span>
@@ -347,14 +346,18 @@ const ProblemPage = () => {
     }
 
     setIsRunning(true);
-    setRunResults(null);
-    setSubmitResult(null);
-    setRunError(null);
+    // Note: We don't explicitly clear results immediately to allow
+    // "rate limited" toasts to appear without flashing the UI blank.
     try {
       const payload = {
         language: getApiLangName(selectedLanguage),
         code: code,
       };
+      // Explicitly clear only on success/new attempt start if you prefer
+      setRunResults(null);
+      setSubmitResult(null);
+      setRunError(null);
+
       const { data } = await axiosClient.post(
         `/submission/run/${problemId}`,
         payload
@@ -364,10 +367,18 @@ const ProblemPage = () => {
       setActiveTestCaseId(0);
     } catch (error) {
       console.error("Run failed:", error);
-      setRunError(
-        error.response?.data?.message || "Compilation or Runtime Error"
-      );
-      setBottomTab("Result");
+      const errData = error.response?.data;
+
+      // --- RATE LIMIT HANDLING ---
+      if (errData?.error) {
+        toast.error(errData.error, {
+          className: "bg-red-500/10 text-red-400 border border-red-500/20",
+        });
+      } else {
+        // Normal compilation/runtime error handling
+        setRunError(errData?.message || "Compilation or Runtime Error");
+        setBottomTab("Result");
+      }
     } finally {
       setIsRunning(false);
     }
@@ -382,29 +393,41 @@ const ProblemPage = () => {
     }
 
     setIsSubmitting(true);
-    setSubmitResult(null);
-    setRunResults(null);
-    setRunError(null);
+    
     try {
       const payload = {
         language: getApiLangName(selectedLanguage),
         code: code,
       };
+      
+      setSubmitResult(null);
+      setRunResults(null);
+      setRunError(null);
+
       const { data } = await axiosClient.post(
         `/submission/submit/${problemId}`,
         payload
       );
       setSubmitResult(data.submittedResult);
       setBottomTab("Result");
-
       toast.success("Submission received!");
     } catch (error) {
       console.error("Submission failed:", error);
-      setSubmitResult({
-        status: "error",
-        errorMessage: error.response?.data?.message || "Submission failed",
-      });
-      setBottomTab("Result");
+      const errData = error.response?.data;
+
+      // --- RATE LIMIT HANDLING ---
+      if (errData?.error) {
+        toast.error(errData.error, {
+          className: "bg-red-500/10 text-red-400 border border-red-500/20",
+        });
+      } else {
+        // Normal submission failure handling
+        setSubmitResult({
+          status: "error",
+          errorMessage: errData?.message || "Submission failed",
+        });
+        setBottomTab("Result");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -650,7 +673,6 @@ const ProblemPage = () => {
                                     : "text-red-400"
                                 }`}
                               >
-                                {/* FIX 2: Display actual status in list */}
                                 <span className="capitalize">
                                   {sub.status === "accepted"
                                     ? "Accepted"
@@ -841,7 +863,6 @@ const ProblemPage = () => {
                           ) : (
                             <XCircle size={28} />
                           )}
-                          {/* FIX 3: Correctly Display Status (TLE, WA, etc.) */}
                           <span className="capitalize">
                             {submitResult.status === "accepted"
                               ? "Accepted"
